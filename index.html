@@ -321,6 +321,33 @@
     <p class="note">Design rule for the whole series: use the model for language, and <strong>supply facts through tools and retrieval</strong> — never assume it knows.</p>
   </section>
 
+  <!-- 11b model vs agent -->
+  <section class="slide">
+    <div class="eyebrow">Model vs agent</div>
+    <h2>A model thinks. An agent acts.</h2>
+    <div class="cols">
+      <div class="card">
+        <h3 style="color:var(--cool)">Model · the LLM</h3>
+        <ul>
+          <li>Stateless: text in, prediction out</li>
+          <li>Thinks, but can't <em>do</em> anything</li>
+          <li>No memory, no tools</li>
+          <li>One call → one answer</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--hot)">Agent · the LLM, put to work</h3>
+        <ul>
+          <li>A model wrapped in a loop</li>
+          <li>Decides, then acts — calls tools, fetches data</li>
+          <li>Keeps memory, state, and a goal</li>
+          <li>Runs until the job is done</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note">The model is the brain; the agent is the brain plus hands, memory, and a to-do list. A model answers — an agent gets things done.</p>
+  </section>
+
   <!-- 12 bridge -->
   <section class="slide statement">
     <div class="eyebrow">Where we're headed</div>
@@ -354,7 +381,7 @@
   <span class="hint" style="opacity:.7">press <span class="kbd">→</span> to advance</span>
   <span class="nav">
     <button id="prev" aria-label="Previous slide">‹</button>
-    <span class="counter" id="counter">1 / 14</span>
+    <span class="counter" id="counter">1 / 15</span>
     <button id="next" aria-label="Next slide">›</button>
   </span>
 </div>

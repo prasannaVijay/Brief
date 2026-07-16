@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Extras 1 — Silicon under the model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15171F; --ink-2:#1B1E2A; --panel:#1F2331; --paper:#ECE8E0;
+    --muted:#878DA0; --line:rgba(255,255,255,.09);
+    --hot:#FF7A5C; --warm:#F0B45A; --cool:#6478CF; --dim:#3A4259; --green:#7BD8A0;
+    --display:'Space Grotesk',system-ui,sans-serif;
+    --body:'IBM Plex Sans',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--ink);color:var(--paper);font-family:var(--body);-webkit-font-smoothing:antialiased;overflow:hidden}
+
+  .deck{position:fixed;inset:0}
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(28px,5.5vw,96px);padding-bottom:clamp(70px,10vh,120px);
+    opacity:0;visibility:hidden;transform:translateY(14px);
+    transition:opacity .5s ease,transform .5s ease,visibility .5s}
+  .slide.is-active{opacity:1;visibility:visible;transform:none}
+
+  .eyebrow{font-family:var(--mono);font-size:clamp(11px,1.1vw,13px);letter-spacing:.22em;text-transform:uppercase;
+    color:var(--hot);margin-bottom:clamp(16px,2.6vh,26px);display:flex;align-items:center;gap:12px}
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--hot);opacity:.7}
+
+  h1{font-family:var(--display);font-weight:700;line-height:1.02;letter-spacing:-.02em}
+  h2{font-family:var(--display);font-weight:600;line-height:1.07;letter-spacing:-.015em;font-size:clamp(28px,4.8vw,58px);max-width:19ch}
+  .lede{font-size:clamp(16px,2vw,23px);max-width:40ch;margin-top:clamp(16px,2.6vh,26px);line-height:1.5}
+  .note{font-family:var(--mono);font-size:clamp(12px,1.15vw,14px);color:var(--muted);margin-top:clamp(18px,2.6vh,26px);line-height:1.6;max-width:62ch}
+  strong{color:var(--hot);font-weight:600}
+  em{font-style:normal;color:var(--warm)}
+  .caret{display:inline-block;width:.5ch;height:1.05em;background:var(--hot);transform:translateY(.16em);margin-left:.08em;animation:blink 1.05s steps(1) infinite}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+  .cover h1{font-size:clamp(46px,9.5vw,120px)}
+  .cover .tag{font-family:var(--mono);color:var(--muted);letter-spacing:.03em;font-size:clamp(14px,1.6vw,18px);margin-top:18px}
+  .cover .line{font-family:var(--mono);font-size:clamp(18px,3vw,34px);margin-top:clamp(30px,5vh,54px)}
+
+  /* cores contrast */
+  .cores{display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,3vw,44px);margin-top:clamp(18px,3vh,30px)}
+  @media(max-width:720px){.cores{grid-template-columns:1fr;gap:20px}}
+  .panel{border:1px solid var(--line);border-radius:14px;padding:clamp(16px,2.2vw,28px);background:linear-gradient(180deg,var(--ink-2),var(--ink))}
+  .panel .h{font-family:var(--display);font-weight:600;font-size:clamp(16px,1.8vw,22px);margin-bottom:4px}
+  .panel .s{font-family:var(--mono);font-size:clamp(11px,1.1vw,13px);color:var(--muted);margin-bottom:14px;letter-spacing:.04em}
+  .grid{display:grid;gap:6px}
+  .grid.cpu{grid-template-columns:repeat(2,1fr)}
+  .grid.gpu{grid-template-columns:repeat(8,1fr);gap:4px}
+  .cell{aspect-ratio:1;border-radius:7px}
+  .cpu .cell{background:linear-gradient(160deg,rgba(255,122,92,.5),rgba(255,122,92,.2));border:1px solid rgba(255,122,92,.4)}
+  .gpu .cell{background:rgba(100,120,207,.28);border:1px solid rgba(100,120,207,.3);border-radius:4px}
+
+  /* vectors line */
+  .vec{font-family:var(--mono);font-size:clamp(16px,2.4vw,30px);margin-top:clamp(18px,3vh,30px);line-height:1.7}
+  .vec .b{color:var(--cool)}
+  .vec .arr{color:var(--hot)}
+  .vgrid{display:inline-flex;gap:4px;vertical-align:middle}
+  .vgrid i{width:.7em;height:.7em;border-radius:3px;background:var(--cool);opacity:.8;display:inline-block}
+
+  /* cheat sheet */
+  .cheat{display:flex;flex-direction:column;gap:clamp(10px,1.6vh,15px);margin-top:clamp(18px,3vh,28px)}
+  .crow{display:grid;grid-template-columns:minmax(120px,1fr) minmax(150px,1.3fr) 1.6fr;gap:clamp(12px,2vw,28px);
+    align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:clamp(10px,1.5vh,14px)}
+  @media(max-width:680px){.crow{grid-template-columns:1fr;gap:3px}}
+  .crow .job{font-family:var(--display);font-weight:600;font-size:clamp(15px,1.7vw,21px)}
+  .crow .shape{font-family:var(--mono);font-size:clamp(12px,1.3vw,15px);color:var(--muted)}
+  .crow .chip{font-size:clamp(14px,1.5vw,18px)}
+  .crow .chip b{color:var(--hot);font-weight:600}
+
+  /* chrome */
+  .bar-bottom{position:fixed;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 clamp(20px,4vw,48px);font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted);
+    border-top:1px solid var(--line);background:rgba(21,23,31,.7);backdrop-filter:blur(6px);z-index:20}
+  .bar-bottom .brand{color:var(--paper)}
+  .bar-bottom .brand b{color:var(--hot);font-weight:600}
+  .nav{display:flex;align-items:center;gap:6px}
+  .nav button{font:inherit;color:var(--muted);background:transparent;border:1px solid var(--line);width:34px;height:30px;border-radius:7px;cursor:pointer;transition:.18s;display:flex;align-items:center;justify-content:center}
+  .nav button:hover{color:var(--paper);border-color:var(--hot)}
+  .nav button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+  .counter{min-width:5ch;text-align:center}
+  .progress{position:fixed;top:0;left:0;height:2px;background:var(--hot);z-index:21;transition:width .4s ease;width:0}
+  .kbd{font-family:var(--mono);border:1px solid var(--line);border-radius:5px;padding:1px 7px;color:var(--muted);font-size:.85em}
+  @media (prefers-reduced-motion: reduce){.slide{transition:opacity .2s linear}.caret{animation:none}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1 cover -->
+  <section class="slide cover">
+    <div class="eyebrow">Brief · extras 1</div>
+    <h1>The silicon<br>under the model</h1>
+    <div class="tag">GPUs, TPUs, and the CPU's comeback for agents.</div>
+    <div class="line"><span class="b" style="color:var(--cool)">matmul</span> <span class="arr" style="color:var(--hot)">all the way</span> down<span class="caret"></span></div>
+  </section>
+
+  <!-- 2 framing -->
+  <section class="slide">
+    <div class="eyebrow">Why care about chips?</div>
+    <h2>The model is math. Where that math runs shapes everything.</h2>
+    <p class="lede">Cost, latency, and what an agent can realistically do all trace back to which chip does the work — and there are three very different jobs.</p>
+    <p class="note">Three jobs, three shapes: <em>train</em> the model, <em>serve</em> its tokens, and <em>orchestrate</em> the agent around it. Each one wants a different chip.</p>
+  </section>
+
+  <!-- 3 history -->
+  <section class="slide">
+    <div class="eyebrow">A short history</div>
+    <h2>GPUs were built to draw pixels — then we noticed they could think.</h2>
+    <p class="lede">In the '90s and 2000s, graphics cards did one thing brilliantly: the same simple math on millions of pixels at once.</p>
+    <p class="note">NVIDIA's CUDA (2007) let anyone run general math on that hardware. Then in 2012 a neural net trained on GPUs — AlexNet — crushed the field, and the whole AI era has run on graphics cards ever since.</p>
+  </section>
+
+  <!-- 4 cpu vs gpu -->
+  <section class="slide">
+    <div class="eyebrow">The core idea</div>
+    <h2>A few big brains, or a thousand small ones.</h2>
+    <div class="cores">
+      <div class="panel">
+        <div class="h">CPU</div><div class="s">few powerful cores · sequential, branchy</div>
+        <div class="grid cpu"><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div></div>
+      </div>
+      <div class="panel">
+        <div class="h">GPU</div><div class="s">thousands of simple cores · same op, in parallel</div>
+        <div class="grid gpu" id="gpugrid"></div>
+      </div>
+    </div>
+    <p class="note">A CPU is built to make hard decisions fast, one after another. A GPU is built to do the <em>same</em> operation on huge piles of numbers all at once.</p>
+  </section>
+
+  <!-- 5 why matrices -->
+  <section class="slide">
+    <div class="eyebrow">The match</div>
+    <h2>A matrix multiply is the same step, a million times over.</h2>
+    <p class="lede">Multiplying matrices is thousands of independent multiply-and-add operations — none waiting on any other. That's exactly the shape a thousand parallel cores devour.</p>
+    <p class="note">Which is why a GPU multiplies big matrices orders of magnitude faster than a CPU ever could.</p>
+  </section>
+
+  <!-- 6 vectors -->
+  <section class="slide">
+    <div class="eyebrow">Why this is an LLM story</div>
+    <h2>Inside the model, everything is a vector.</h2>
+    <div class="vec">
+      <span class="b">token</span> <span class="arr">→</span> <span class="vgrid"><i></i><i></i><i></i><i></i><i></i></span> <span style="color:var(--muted);font-size:.7em">(a vector)</span>
+    </div>
+    <p class="lede">Tokens become vectors. Attention — from the pre-read — compares those vectors with dot products. Stack the comparisons up and it's one big matrix multiply.</p>
+    <p class="note">The model is matrix math wearing a language costume.</p>
+  </section>
+
+  <!-- 7 search is matmul -->
+  <section class="slide">
+    <div class="eyebrow">Even retrieval</div>
+    <h2>Every "search" is multiplication too.</h2>
+    <p class="lede">Semantic search and RAG compare your query vector against thousands of stored vectors. Each comparison is a dot product; all of them together are a single matrix-by-vector multiply.</p>
+    <p class="note">So the whole stack — generating <em>and</em> searching — is matrix math. That's the work GPUs were accidentally perfect for.</p>
+  </section>
+
+  <!-- 8 training -->
+  <section class="slide">
+    <div class="eyebrow">Where GPUs are unbeatable</div>
+    <h2>Training is a GPU's dream job.</h2>
+    <p class="lede">Enormous matrix multiplies over huge batches, every core kept busy, pure throughput — the problem is embarrassingly parallel.</p>
+    <p class="note">For training, nothing touches a room full of GPUs (or TPUs). This is their home turf, no argument.</p>
+  </section>
+
+  <!-- 9 inference twist -->
+  <section class="slide">
+    <div class="eyebrow">The twist</div>
+    <h2>But generation doesn't fill the GPU.</h2>
+    <p class="lede">Inference makes one token at a time, each depending on the last, often for a single user. Now the bottleneck isn't compute — it's <strong>memory bandwidth</strong>: you stream the weights and the ever-growing KV cache for <em>every single token</em> while most cores sit idle.</p>
+    <p class="note">Compute-rich, memory-starved. (Batch many users together and GPUs get efficient again — which is why they still serve most inference today — but the fit is worse, and that opens a door.)</p>
+  </section>
+
+  <!-- 10 TPUs -->
+  <section class="slide">
+    <div class="eyebrow">Purpose-built</div>
+    <h2>TPUs: chips built for tensors, not pixels.</h2>
+    <p class="lede">A GPU is a graphics chip repurposed for AI. A TPU is designed from scratch for the one job that matters — multiplying tensors — using a layout that keeps data flowing with far less memory traffic.</p>
+    <p class="note">The payoff is efficiency: more useful work per watt and per dollar on ML math, at both training and serving scale. Specialization beats leftover generality.</p>
+  </section>
+
+  <!-- 11 CPU comeback -->
+  <section class="slide">
+    <div class="eyebrow">The comeback</div>
+    <h2>An agent is mostly orchestration — and that's CPU work.</h2>
+    <p class="lede">Most of an agent's time isn't matmul. It's calling tools, waiting on APIs and databases, branching, parsing, retrying — sequential, latency-bound logic. Exactly what CPUs are best at.</p>
+    <p class="note">The heavy math is a remote model call; the agent's <em>brain</em> — the loop itself — runs happily on a plain CPU. As the work shifts from training models to running agents, the humble CPU is back on the critical path.</p>
+  </section>
+
+  <!-- 12 cheat sheet -->
+  <section class="slide">
+    <div class="eyebrow">The one slide to keep</div>
+    <h2>Right chip, right shape of work.</h2>
+    <div class="cheat">
+      <div class="crow"><div class="job">Train the model</div><div class="shape">giant parallel matmul</div><div class="chip"><b>GPU / TPU</b></div></div>
+      <div class="crow"><div class="job">Serve the tokens</div><div class="shape">memory-bandwidth bound</div><div class="chip"><b>TPU · inference chips · batched GPUs</b></div></div>
+      <div class="crow"><div class="job">Run the agent</div><div class="shape">orchestration + I/O</div><div class="chip"><b>CPU</b></div></div>
+    </div>
+    <p class="note">The skill isn't picking "the fastest chip" — it's matching the chip to the shape of the work. <span class="caret"></span></p>
+  </section>
+
+</div>
+
+<div class="bar-bottom">
+  <span class="brand"><b>Brief</b> · extras 1 · silicon</span>
+  <span class="hint" style="opacity:.7">press <span class="kbd">→</span></span>
+  <span class="nav">
+    <button id="prev" aria-label="Previous slide">‹</button>
+    <span class="counter" id="counter">1 / 12</span>
+    <button id="next" aria-label="Next slide">›</button>
+  </span>
+</div>
+
+<script>
+(function(){
+  // fill GPU grid with many small cores
+  var g = document.getElementById('gpugrid');
+  if(g){ for(var k=0;k<32;k++){ var d=document.createElement('div'); d.className='cell'; g.appendChild(d); } }
+
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, counter = document.getElementById('counter'),
+      progress = document.getElementById('progress'), hint = document.querySelector('.hint');
+  function render(){
+    slides.forEach(function(s,n){ s.classList.toggle('is-active', n===i); });
+    counter.textContent = (i+1) + ' / ' + slides.length;
+    progress.style.width = (i/(slides.length-1)*100) + '%';
+    if(hint) hint.style.opacity = i===0 ? '.7' : '0';
+  }
+  function go(n){ i = Math.max(0, Math.min(slides.length-1, n)); render(); }
+  function next(){ go(i+1); } function prev(){ go(i-1); }
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+  document.addEventListener('keydown', function(e){
+    if(['ArrowRight','PageDown',' ','Enter'].indexOf(e.key)>-1){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','PageUp'].indexOf(e.key)>-1){ e.preventDefault(); prev(); }
+    else if(e.key==='Home'){ e.preventDefault(); go(0); }
+    else if(e.key==='End'){ e.preventDefault(); go(slides.length-1); }
+  });
+  var x0=null;
+  document.addEventListener('touchstart', function(e){ x0=e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if(x0===null) return;
+    var dx=e.changedTouches[0].clientX-x0;
+    if(Math.abs(dx)>50){ dx<0?next():prev(); } x0=null;
+  }, {passive:true});
+  render();
+})();
+</script>
+</body>
+</html>
