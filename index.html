@@ -132,6 +132,11 @@
   /* big statement */
   .statement h2{font-size:clamp(34px,6.4vw,84px);max-width:16ch}
 
+  .nextlink{display:inline-flex;align-items:center;gap:10px;margin-top:clamp(22px,3.5vh,34px);
+    font-family:var(--mono);font-size:clamp(14px,1.5vw,18px);color:var(--hot);text-decoration:none;
+    border:1px solid var(--hot);border-radius:9px;padding:12px 20px;transition:.18s;align-self:flex-start}
+  .nextlink:hover{background:rgba(255,122,92,.1)}
+
   /* ---------- chrome ---------- */
   .bar-bottom{position:fixed;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;
     justify-content:space-between;padding:0 clamp(20px,4vw,48px);
@@ -261,6 +266,20 @@
     <p class="note">A wiki or a year of notes won't fit. That gap is exactly the problem RAG solves later in the series.</p>
   </section>
 
+  <!-- 9b context window sizes -->
+  <section class="slide">
+    <div class="eyebrow">How big is the window?</div>
+    <h2>Big today — but never big enough.</h2>
+    <p class="lede">Today's models hold roughly a few hundred thousand up to a few million tokens at once — call it a long novel at the low end, a small shelf of books at the high end.</p>
+    <div class="tokens">
+      <span class="chip">~200K ≈ a long novel</span>
+      <span class="chip">~1M ≈ several books</span>
+      <span class="chip">~2M ≈ a small shelf</span>
+    </div>
+    <p class="note">Bigger isn't a free win: every token costs money and time, and models attend less reliably to the middle of a very full window — so the <em>usable</em> context is smaller than the number on the box. You don't just pour everything in.</p>
+    <p class="note">Think of the window as the model's short-term working memory. When your knowledge is bigger than the window — or has to survive between calls — you wrap memory layers around it: <strong>RAG</strong> to fetch just the relevant slice, plus stores for history and state. We build those in a later session.</p>
+  </section>
+
   <!-- 10 under the hood (optional) -->
   <section class="slide">
     <div class="eyebrow">Optional · under the hood</div>
@@ -325,6 +344,7 @@
       <div><dt>hallucination</dt><dd>A confident answer that's simply made up.</dd></div>
     </dl>
     <p class="note">Before session 1: clone the starter repo and get an API key. That's all — see you there. <span class="caret" style="transform:translateY(.16em)"></span></p>
+    <a class="nextlink" href="session-1.html">Next · Session 1 — Brief &amp; LLMs →</a>
   </section>
 
 </div>
@@ -334,7 +354,7 @@
   <span class="hint" style="opacity:.7">press <span class="kbd">→</span> to advance</span>
   <span class="nav">
     <button id="prev" aria-label="Previous slide">‹</button>
-    <span class="counter" id="counter">1 / 13</span>
+    <span class="counter" id="counter">1 / 14</span>
     <button id="next" aria-label="Next slide">›</button>
   </span>
 </div>
