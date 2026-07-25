@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Session 4 — Connecting LLMs: APIs, tools & MCP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15171F; --ink-2:#1B1E2A; --panel:#1F2331; --paper:#ECE8E0;
+    --muted:#878DA0; --line:rgba(255,255,255,.09);
+    --hot:#FF7A5C; --warm:#F0B45A; --cool:#6478CF; --dim:#3A4259; --green:#7BD8A0; --blue:#9EC5FF;
+    --display:'Space Grotesk',system-ui,sans-serif;
+    --body:'IBM Plex Sans',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--ink);color:var(--paper);font-family:var(--body);-webkit-font-smoothing:antialiased;overflow:hidden}
+
+  .deck{position:fixed;inset:0}
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(28px,5.5vw,92px);padding-bottom:clamp(70px,10vh,116px);
+    opacity:0;visibility:hidden;transform:translateY(14px);
+    transition:opacity .5s ease,transform .5s ease,visibility .5s}
+  .slide.is-active{opacity:1;visibility:visible;transform:none}
+
+  .eyebrow{font-family:var(--mono);font-size:clamp(11px,1.1vw,13px);letter-spacing:.22em;text-transform:uppercase;
+    color:var(--hot);margin-bottom:clamp(14px,2.4vh,24px);display:flex;align-items:center;gap:12px}
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--hot);opacity:.7}
+  .eyebrow .r{margin-left:auto;color:var(--muted);letter-spacing:.14em}
+
+  h1{font-family:var(--display);font-weight:700;line-height:1.02;letter-spacing:-.02em}
+  h2{font-family:var(--display);font-weight:600;line-height:1.07;letter-spacing:-.015em;font-size:clamp(27px,4.5vw,54px);max-width:19ch}
+  .lede{font-size:clamp(16px,1.9vw,22px);max-width:40ch;margin-top:clamp(14px,2.4vh,24px);line-height:1.5}
+  .note{font-family:var(--mono);font-size:clamp(12px,1.15vw,14px);color:var(--muted);margin-top:clamp(16px,2.4vh,24px);line-height:1.6;max-width:62ch}
+  strong{color:var(--hot);font-weight:600}
+  em{font-style:normal;color:var(--warm)}
+  .caret{display:inline-block;width:.5ch;height:1.05em;background:var(--hot);transform:translateY(.16em);margin-left:.08em;animation:blink 1.05s steps(1) infinite}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+  .cover h1{font-size:clamp(42px,8.5vw,110px)}
+  .cover .tag{font-family:var(--mono);color:var(--muted);letter-spacing:.03em;font-size:clamp(14px,1.6vw,18px);margin-top:18px}
+  .cover .line{font-family:var(--mono);font-size:clamp(17px,2.8vw,32px);margin-top:clamp(28px,5vh,50px)}
+
+  .steps{list-style:none;margin-top:clamp(16px,2.6vh,28px);display:flex;flex-direction:column;gap:clamp(9px,1.5vh,15px);max-width:46ch}
+  .steps li{display:flex;gap:16px;align-items:baseline;font-size:clamp(15px,1.8vw,21px)}
+  .steps .n{font-family:var(--mono);color:var(--hot);font-size:.8em;min-width:2.4ch}
+
+  /* nodes + flow (round-trip, architecture) */
+  .flow{display:flex;align-items:stretch;gap:clamp(6px,1vw,14px);flex-wrap:wrap;margin-top:clamp(16px,2.6vh,26px)}
+  .node{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:clamp(10px,1.3vw,16px);
+    display:flex;flex-direction:column;gap:5px;justify-content:center;min-width:0}
+  .node .k{font-family:var(--mono);font-size:clamp(9px,.9vw,11px);letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+  .node .t{font-family:var(--display);font-weight:600;font-size:clamp(14px,1.5vw,19px);line-height:1.1}
+  .node .d{font-size:clamp(10px,1vw,12.5px);color:var(--muted);line-height:1.3}
+  .node.hot{border-color:var(--hot);background:linear-gradient(180deg,rgba(255,122,92,.09),var(--panel))}
+  .node.hot .t{color:var(--hot)}
+  .arrow{align-self:center;color:var(--hot);font-size:clamp(15px,1.7vw,22px);flex:0 0 auto}
+  .arrow .lbl{display:block;font-family:var(--mono);font-size:clamp(9px,.85vw,11px);color:var(--muted);text-transform:none;letter-spacing:0;text-align:center}
+  .ret{margin-top:12px;border:1px dashed rgba(255,122,92,.4);border-radius:9px;padding:8px 14px;
+    font-family:var(--mono);font-size:clamp(11px,1.15vw,14px);color:var(--warm);text-align:center}
+
+  .prim{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .tag{font-family:var(--mono);font-size:clamp(11px,1.15vw,14px);border:1px solid var(--line);border-radius:7px;padding:6px 11px;color:var(--paper)}
+  .tag b{color:var(--hot)}
+  .tag .m{color:var(--muted)}
+
+  /* diagram svg */
+  .diag{width:100%;max-width:640px;margin-top:clamp(14px,2.4vh,22px)}
+  .diag rect.box{fill:var(--panel);stroke:var(--line)}
+  .diag rect.hub{fill:rgba(255,122,92,.14);stroke:var(--hot)}
+  .diag text{fill:var(--paper);font-family:var(--mono);font-size:13px;dominant-baseline:middle;text-anchor:middle}
+  .diag text.hub{fill:var(--hot);font-weight:600}
+  .diag line.mn{stroke:#5b6273;stroke-width:1.3;opacity:.5}
+  .diag line.hb{stroke:var(--hot);stroke-width:1.6;opacity:.85}
+
+  /* code + commands */
+  .code{background:#11131b;border:1px solid var(--line);border-radius:12px;padding:clamp(15px,2vw,26px);
+    font-family:var(--mono);font-size:clamp(11.5px,1.45vw,17px);line-height:1.7;overflow:auto;white-space:pre;margin-top:clamp(14px,2.4vh,22px)}
+  .code .c{color:var(--muted)} .code .k{color:var(--cool)} .code .d{color:var(--hot)}
+  .code .s{color:var(--warm)} .code .f{color:var(--green)}
+  .cmd{background:#11131b;border:1px solid var(--line);border-radius:10px;padding:clamp(12px,1.6vw,20px);
+    font-family:var(--mono);font-size:clamp(12px,1.5vw,17px);line-height:1.8;margin-top:clamp(14px,2.4vh,22px);white-space:pre-wrap}
+  .cmd .p{color:var(--hot)} .cmd .c{color:var(--muted)}
+
+  .anno{list-style:none;margin-top:clamp(14px,2.4vh,22px);display:flex;flex-direction:column;gap:clamp(9px,1.5vh,14px);max-width:60ch}
+  .anno li{display:flex;gap:14px;align-items:baseline;font-size:clamp(14px,1.55vw,18px);line-height:1.4}
+  .anno code{font-family:var(--mono);color:var(--hot);font-size:.92em}
+  .anno .b{color:var(--hot);font-family:var(--mono);font-size:.85em;min-width:1.6ch}
+
+  /* callout */
+  .callout{margin-top:clamp(16px,2.6vh,24px);border:1px solid rgba(240,180,90,.3);background:rgba(240,180,90,.06);
+    border-radius:11px;padding:clamp(13px,1.7vw,20px);font-size:clamp(13px,1.45vw,16px);line-height:1.5;max-width:64ch}
+  .callout b{color:var(--warm)}
+
+  /* tool ideas grid */
+  .ideas{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(10px,1.4vw,16px);margin-top:clamp(16px,2.6vh,24px)}
+  @media(max-width:760px){.ideas{grid-template-columns:repeat(2,1fr)}}
+  .idea{border:1px solid var(--line);border-radius:10px;padding:clamp(12px,1.5vw,18px);background:var(--panel)}
+  .idea .nm{font-family:var(--mono);color:var(--hot);font-size:clamp(13px,1.4vw,16px)}
+  .idea .d{font-size:clamp(11px,1.15vw,13.5px);color:var(--muted);margin-top:5px;line-height:1.35}
+
+  /* chrome */
+  .bar-bottom{position:fixed;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 clamp(20px,4vw,48px);font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted);
+    border-top:1px solid var(--line);background:rgba(21,23,31,.7);backdrop-filter:blur(6px);z-index:20}
+  .bar-bottom .brand{color:var(--paper)}
+  .bar-bottom .brand b{color:var(--hot);font-weight:600}
+  .nav{display:flex;align-items:center;gap:6px}
+  .nav button{font:inherit;color:var(--muted);background:transparent;border:1px solid var(--line);width:34px;height:30px;border-radius:7px;cursor:pointer;transition:.18s;display:flex;align-items:center;justify-content:center}
+  .nav button:hover{color:var(--paper);border-color:var(--hot)}
+  .nav button:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+  .counter{min-width:5ch;text-align:center}
+  .progress{position:fixed;top:0;left:0;height:2px;background:var(--hot);z-index:21;transition:width .4s ease;width:0}
+  .kbd{font-family:var(--mono);border:1px solid var(--line);border-radius:5px;padding:1px 7px;color:var(--muted);font-size:.85em}
+  @media (prefers-reduced-motion: reduce){.slide{transition:opacity .2s linear}.caret{animation:none}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1 cover -->
+  <section class="slide cover">
+    <div class="eyebrow">Brief · session 4</div>
+    <h1>Connecting<br>to the world</h1>
+    <div class="tag">APIs, tools &amp; MCP — and your first server.</div>
+    <div class="line">model <span style="color:var(--hot)">→</span> tool <span style="color:var(--hot)">→</span> the internet<span class="caret"></span></div>
+  </section>
+
+  <!-- 2 prerequisites -->
+  <section class="slide">
+    <div class="eyebrow">Before we start</div>
+    <h2>What to have ready.</h2>
+    <ul class="steps">
+      <li><span class="n">✓</span><span><strong>Python 3.11+</strong> — the server runs on it (3.12 recommended)</span></li>
+      <li><span class="n">✓</span><span><strong>uv</strong> — the fast Python package manager we'll use throughout</span></li>
+      <li><span class="n">✓</span><span><strong>Claude Desktop</strong> — our MCP client for the demo (or Claude Code)</span></li>
+      <li><span class="n">✓</span><span><strong>Node.js 22+</strong> — powers the MCP Inspector</span></li>
+      <li><span class="n">✓</span><span>A terminal and an editor you're happy in</span></li>
+    </ul>
+    <p class="note">Install commands are in the <strong>appendix</strong> (last slide) — ideally done as pre-work, so class time is all building.</p>
+  </section>
+
+  <!-- 2 agenda -->
+  <section class="slide">
+    <div class="eyebrow">Where we are</div>
+    <h2>The model is frozen and stateless. Today it reaches out.</h2>
+    <ul class="steps">
+      <li><span class="n">01</span><span>How a model uses a <strong>traditional API</strong> at all</span></li>
+      <li><span class="n">02</span><span>Why hand-wiring doesn't scale — and what <strong>MCP</strong> fixes</span></li>
+      <li><span class="n">03</span><span>Build &amp; test <strong>your own MCP server</strong> with one tool</span></li>
+      <li><span class="n">04</span><span>Then go make your own</span></li>
+    </ul>
+  </section>
+
+  <!-- 3 the question -->
+  <section class="slide">
+    <div class="eyebrow">Start here</div>
+    <h2>How does a frozen model tell you today's headlines?</h2>
+    <p class="lede">Its weights were baked months ago. It has no network, no memory, no clock. Yet somehow agents pull live data all day.</p>
+    <p class="note">The answer is the foundation of every connection Brief will ever make.</p>
+  </section>
+
+  <!-- 4 the reveal -->
+  <section class="slide">
+    <div class="eyebrow">The reveal</div>
+    <h2>It doesn't fetch anything. It asks <em>you</em> to.</h2>
+    <p class="lede">You hand the model a menu of <strong>tools</strong> it's allowed to call. When it wants data, it doesn't run code — it emits a structured request: "call <span style="font-family:var(--mono);color:var(--hot)">get_headlines</span> with this url." <strong>Your</strong> code makes the real API call and hands the result back.</p>
+    <p class="note">This is "function calling" / "tool use" — the mechanism under every LLM-to-API connection.</p>
+  </section>
+
+  <!-- 5 round trip -->
+  <section class="slide">
+    <div class="eyebrow">The round-trip</div>
+    <div class="flow">
+      <div class="node hot"><span class="k">the model</span><span class="t">Decides</span><span class="d">"I need headlines"</span></div>
+      <span class="arrow">→<span class="lbl">tool_call</span></span>
+      <div class="node"><span class="k">your runtime</span><span class="t">Executes</span><span class="d">makes the real request</span></div>
+      <span class="arrow">→<span class="lbl">GET</span></span>
+      <div class="node"><span class="k">traditional api</span><span class="t">RSS feed</span><span class="d">returns data</span></div>
+    </div>
+    <div class="ret">← the result flows back the same path — the model reads it and keeps going ←</div>
+    <p class="note">The model supplies the <em>intent</em>; your code supplies the <em>reach</em>. It never touches the network itself.</p>
+  </section>
+
+  <!-- 6 what the model sees -->
+  <section class="slide">
+    <div class="eyebrow">What a tool actually is</div>
+    <h2>A name, a description, and a schema.</h2>
+    <p class="lede">That's all the model sees of a tool: what it's called, what it does in plain words, and the shape of its arguments. No implementation — just the contract.</p>
+    <p class="note">So the <strong>description drives the behavior</strong>. A vague docstring makes the model call wrong or not at all. This is prompt-writing, not just plumbing — keep it in mind for the build.</p>
+  </section>
+
+  <!-- 7 M x N -->
+  <section class="slide">
+    <div class="eyebrow">The problem</div>
+    <h2>Hand-wired, it explodes.</h2>
+    <svg class="diag" viewBox="0 0 400 210" role="img" aria-label="Every app wired to every client">
+      <line class="mn" x1="120" y1="50" x2="280" y2="50"/><line class="mn" x1="120" y1="50" x2="280" y2="110"/><line class="mn" x1="120" y1="50" x2="280" y2="170"/>
+      <line class="mn" x1="120" y1="110" x2="280" y2="50"/><line class="mn" x1="120" y1="110" x2="280" y2="110"/><line class="mn" x1="120" y1="110" x2="280" y2="170"/>
+      <line class="mn" x1="120" y1="170" x2="280" y2="50"/><line class="mn" x1="120" y1="170" x2="280" y2="110"/><line class="mn" x1="120" y1="170" x2="280" y2="170"/>
+      <rect class="box" x="20" y="35" width="100" height="30" rx="7"/><text x="70" y="51">Calendar</text>
+      <rect class="box" x="20" y="95" width="100" height="30" rx="7"/><text x="70" y="111">Slack</text>
+      <rect class="box" x="20" y="155" width="100" height="30" rx="7"/><text x="70" y="171">GitHub</text>
+      <rect class="box" x="280" y="35" width="100" height="30" rx="7"/><text x="330" y="51">Claude</text>
+      <rect class="box" x="280" y="95" width="100" height="30" rx="7"/><text x="330" y="111">GPT</text>
+      <rect class="box" x="280" y="155" width="100" height="30" rx="7"/><text x="330" y="171">Cursor</text>
+    </svg>
+    <p class="note">3 apps × 3 clients = 9 bespoke integrations — and you rebuild them for every new model or framework. That's the <strong>M × N</strong> trap.</p>
+  </section>
+
+  <!-- 8 MCP fixes it -->
+  <section class="slide">
+    <div class="eyebrow">The fix</div>
+    <h2>MCP: build once, plug in anywhere.</h2>
+    <svg class="diag" viewBox="0 0 400 210" role="img" aria-label="Apps and clients connected through a central MCP standard">
+      <line class="hb" x1="120" y1="50" x2="175" y2="105"/><line class="hb" x1="120" y1="110" x2="175" y2="105"/><line class="hb" x1="120" y1="170" x2="175" y2="105"/>
+      <line class="hb" x1="225" y1="105" x2="280" y2="50"/><line class="hb" x1="225" y1="105" x2="280" y2="110"/><line class="hb" x1="225" y1="105" x2="280" y2="170"/>
+      <rect class="box" x="20" y="35" width="100" height="30" rx="7"/><text x="70" y="51">Calendar</text>
+      <rect class="box" x="20" y="95" width="100" height="30" rx="7"/><text x="70" y="111">Slack</text>
+      <rect class="box" x="20" y="155" width="100" height="30" rx="7"/><text x="70" y="171">GitHub</text>
+      <rect class="hub" x="165" y="90" width="70" height="30" rx="7"/><text class="hub" x="200" y="106">MCP</text>
+      <rect class="box" x="280" y="35" width="100" height="30" rx="7"/><text x="330" y="51">Claude</text>
+      <rect class="box" x="280" y="95" width="100" height="30" rx="7"/><text x="330" y="111">GPT</text>
+      <rect class="box" x="280" y="155" width="100" height="30" rx="7"/><text x="330" y="171">Cursor</text>
+    </svg>
+    <p class="note">3 + 3 = 6, through one standard. Build a <strong>server</strong> once and any MCP client can use it — no custom glue. The "USB-C for AI."</p>
+  </section>
+
+  <!-- 9 how MCP is wired -->
+  <section class="slide">
+    <div class="eyebrow">How it's wired</div>
+    <h2>Host, client, server.</h2>
+    <div class="flow">
+      <div class="node"><span class="k">host</span><span class="t">The LLM app</span><span class="d">Brief · Claude Desktop · Cursor</span></div>
+      <span class="arrow">→</span>
+      <div class="node"><span class="k">client</span><span class="t">Speaks MCP</span><span class="d">one per server</span></div>
+      <span class="arrow">→</span>
+      <div class="node hot"><span class="k">server</span><span class="t">Your code</span><span class="d">exposes capabilities</span></div>
+    </div>
+    <div class="prim">
+      <span class="tag"><b>tools</b> <span class="m">· actions the model calls</span></span>
+      <span class="tag"><b>resources</b> <span class="m">· data the host reads</span></span>
+      <span class="tag"><b>prompts</b> <span class="m">· templated flows</span></span>
+    </div>
+    <p class="note">Transport is <em>stdio</em> for local (a subprocess) or <em>Streamable HTTP</em> for remote. We start local. Today we build the green box, exposing one <strong>tool</strong>.</p>
+  </section>
+
+  <!-- 10 tie to brief -->
+  <section class="slide">
+    <div class="eyebrow">Why this is a Brief story</div>
+    <h2>Every surface becomes a server. Brief becomes a host.</h2>
+    <p class="lede">Google, Slack, your notes, that internal API nobody wants to touch — each is just an MCP server. Brief connects to them as a host and never cares how they're built inside.</p>
+    <p class="note">Today you build one server with one tool — <span style="font-family:var(--mono);color:var(--hot)">get_headlines</span>, which also happens to be a real Brief surface.</p>
+  </section>
+
+  <!-- 11 tutorial intro -->
+  <section class="slide">
+    <div class="eyebrow">Hands on</div>
+    <h2>Let's build <span style="font-family:var(--mono)">get_headlines</span>.</h2>
+    <p class="lede">One tool that pulls the top items from any RSS feed. We'll run it locally, prove it in the <strong>Inspector</strong>, then call it live from <strong>Claude Desktop</strong>.</p>
+    <p class="note">No agent required yet — a real MCP client drives your server, so you see it work end to end today.</p>
+  </section>
+
+  <!-- 12 setup -->
+  <section class="slide">
+    <div class="eyebrow">Setup · one time</div>
+    <h2>Two dependencies. That's it.</h2>
+    <div class="cmd"><span class="p">$</span> uv add fastmcp feedparser
+<span class="c"># also handy: Python 3.12, Claude Desktop, and Node (for the Inspector)</span></div>
+    <p class="note">FastMCP is the library behind most MCP servers — it turns a plain Python function into a spec-compliant tool. <span class="cap">feedparser</span> just reads RSS.</p>
+  </section>
+
+  <!-- 13 the whole server -->
+  <section class="slide">
+    <div class="eyebrow">The whole server</div>
+    <h2 style="font-size:clamp(24px,3.6vw,42px)">This is all of it.</h2>
+    <pre class="code"><span class="k">from</span> fastmcp <span class="k">import</span> FastMCP
+<span class="k">import</span> feedparser
+
+mcp = <span class="f">FastMCP</span>(<span class="s">"brief-tools"</span>)
+
+<span class="d">@mcp.tool</span>
+<span class="k">def</span> <span class="f">get_headlines</span>(feed_url: <span class="k">str</span>, limit: <span class="k">int</span> = 5) -> <span class="k">str</span>:
+    <span class="s">"""Get the latest headlines from an RSS feed."""</span>
+    feed = feedparser.<span class="f">parse</span>(feed_url)
+    items = feed.entries[:limit]
+    <span class="k">return</span> <span class="s">"\n"</span>.<span class="f">join</span>(<span class="s">f"- {i.title} ({i.link})"</span> <span class="k">for</span> i <span class="k">in</span> items)
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    mcp.<span class="f">run</span>()</pre>
+  </section>
+
+  <!-- 14 walk the code -->
+  <section class="slide">
+    <div class="eyebrow">Reading it</div>
+    <h2>Four lines do the real work.</h2>
+    <ul class="anno">
+      <li><span class="b">1</span><span><code>FastMCP("brief-tools")</code> — names your server. That's the whole setup.</span></li>
+      <li><span class="b">2</span><span><code>@mcp.tool</code> — registers the function as a callable tool. No schema to hand-write.</span></li>
+      <li><span class="b">3</span><span>The <strong>docstring + type hints become the schema</strong> the model sees — remember slide 6? This is where the description lives.</span></li>
+      <li><span class="b">4</span><span><code>return</code> a <strong>string</strong>, and <code>mcp.run()</code> starts it over stdio, ready for any client.</span></li>
+    </ul>
+    <p class="note">Return text, not a raw dict — a dict can look fine in the Inspector but arrive truncated in Claude Desktop.</p>
+  </section>
+
+  <!-- 15 inspector -->
+  <section class="slide">
+    <div class="eyebrow">Prove it · step 1</div>
+    <h2>Validate in the MCP Inspector.</h2>
+    <div class="cmd"><span class="p">$</span> fastmcp dev server.py    <span class="c"># opens the Inspector in your browser</span></div>
+    <p class="lede">Pick <span style="font-family:var(--mono);color:var(--hot)">get_headlines</span>, paste an RSS url, hit Run — and watch the headlines come back. Notice the schema it auto-generated from your function: that's <strong>discovery</strong> at work.</p>
+    <p class="note">The Inspector is your debugger before any model is involved. If it works here, the tool is sound.</p>
+  </section>
+
+  <!-- 16 claude desktop -->
+  <section class="slide">
+    <div class="eyebrow">Prove it · step 2</div>
+    <h2>Now let Claude use it.</h2>
+    <div class="cmd"><span class="p">$</span> fastmcp install claude-desktop server.py   <span class="c"># registers your server</span></div>
+    <p class="note"><strong>What it does:</strong> writes an entry into Claude Desktop's config file (<span style="color:var(--paper)">claude_desktop_config.json</span>, under <span style="color:var(--paper)">mcpServers</span>) with the command to launch your server over stdio. On restart, the app spawns <span style="color:var(--paper)">server.py</span> as a subprocess and discovers its tools. You could hand-edit that JSON yourself — this just does it for you.</p>
+    <p class="lede">Restart Claude Desktop and ask: <em>"what are today's headlines from &lt;feed&gt;?"</em> — and watch it call <strong>your</strong> tool and answer from live data.</p>
+    <div class="callout"><b>Two gotchas that eat time:</b> if a tool shells out, capture the subprocess output (stdout collides with the stdio transport otherwise); and Claude Desktop's launcher is picky about the Python path.</div>
+  </section>
+
+  <!-- 17 make it yours -->
+  <section class="slide">
+    <div class="eyebrow">Your turn</div>
+    <h2>The protocol's the same. The creativity is yours.</h2>
+    <div class="ideas">
+      <div class="idea"><div class="nm">get_weather</div><div class="d">a free weather API by city</div></div>
+      <div class="idea"><div class="nm">my_open_prs</div><div class="d">your GitHub review queue</div></div>
+      <div class="idea"><div class="nm">next_meeting</div><div class="d">the next thing on your calendar</div></div>
+      <div class="idea"><div class="nm">fx_rate</div><div class="d">live currency conversion</div></div>
+      <div class="idea"><div class="nm">query_db</div><div class="d">a read-only SQL lookup</div></div>
+      <div class="idea"><div class="nm">on_call_now</div><div class="d">who's paged this week</div></div>
+    </div>
+    <p class="note">Same recipe every time: one tool, a clear docstring, <strong>read-only first</strong>, prove it in the Inspector. Swap the body — the plumbing never changes.</p>
+  </section>
+
+  <!-- 18 wrap -->
+  <section class="slide">
+    <div class="eyebrow">Before you go</div>
+    <h2>Start narrow. Stay honest.</h2>
+    <p class="lede">A tool the model can call is real power — so begin <strong>read-only</strong>, scope it tightly, and treat any live text as untrusted (prompt injection is real once data flows in). Promote to HTTP and auth only when a second consumer needs it.</p>
+    <p class="note">Checkpoint: <span style="color:var(--hot)">mcp-server-v1</span>. Next time, Brief becomes the host that consumes servers like yours. Bring a tool idea. <span class="caret"></span></p>
+  </section>
+
+  <!-- appendix -->
+  <section class="slide">
+    <div class="eyebrow">Appendix · install everything</div>
+    <h2 style="font-size:clamp(23px,3.4vw,40px)">Setup commands (macOS / Linux).</h2>
+    <div class="cmd"><span class="c"># 1 · Python 3.11+ — check first (3.12 recommended)</span>
+<span class="p">$</span> python3 --version
+<span class="c">#   install via python.org, or:  brew install python@3.12</span>
+
+<span class="c"># 2 · uv — the package manager</span>
+<span class="p">$</span> curl -LsSf https://astral.sh/uv/install.sh | sh
+
+<span class="c"># 3 · project dependencies</span>
+<span class="p">$</span> uv add fastmcp feedparser
+
+<span class="c"># 4 · Node.js 22+  (for the MCP Inspector)</span>
+<span class="p">$</span> node --version            <span class="c"># or:  brew install node</span>
+
+<span class="c"># 5 · Claude Desktop — download the app from claude.ai/download</span>
+
+<span class="c"># (alt client) Claude Code — native installer recommended, no Node</span>
+<span class="c">#   see code.claude.com/docs  ·  or via npm (needs Node 22+):</span>
+<span class="p">$</span> npm install -g @anthropic-ai/claude-code</div>
+    <p class="note">Windows: use uv's PowerShell installer (<span style="color:var(--paper)">irm https://astral.sh/uv/install.ps1 | iex</span>) or run everything under WSL. Sanity-check Claude Code with <span style="color:var(--paper)">claude doctor</span>.</p>
+  </section>
+
+</div>
+
+<div class="bar-bottom">
+  <span class="brand"><b>Brief</b> · session 4 · apis, tools &amp; mcp</span>
+  <span class="hint" style="opacity:.7">press <span class="kbd">→</span></span>
+  <span class="nav">
+    <button id="prev" aria-label="Previous slide">‹</button>
+    <span class="counter" id="counter">1 / 20</span>
+    <button id="next" aria-label="Next slide">›</button>
+  </span>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, counter = document.getElementById('counter'),
+      progress = document.getElementById('progress'), hint = document.querySelector('.hint');
+  function render(){
+    slides.forEach(function(s,n){ s.classList.toggle('is-active', n===i); });
+    counter.textContent = (i+1) + ' / ' + slides.length;
+    progress.style.width = (i/(slides.length-1)*100) + '%';
+    if(hint) hint.style.opacity = i===0 ? '.7' : '0';
+  }
+  function go(n){ i = Math.max(0, Math.min(slides.length-1, n)); render(); }
+  function next(){ go(i+1); } function prev(){ go(i-1); }
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+  document.addEventListener('keydown', function(e){
+    if(['ArrowRight','PageDown',' ','Enter'].indexOf(e.key)>-1){ e.preventDefault(); next(); }
+    else if(['ArrowLeft','PageUp'].indexOf(e.key)>-1){ e.preventDefault(); prev(); }
+    else if(e.key==='Home'){ e.preventDefault(); go(0); }
+    else if(e.key==='End'){ e.preventDefault(); go(slides.length-1); }
+  });
+  var x0=null;
+  document.addEventListener('touchstart', function(e){ x0=e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if(x0===null) return; var dx=e.changedTouches[0].clientX-x0;
+    if(Math.abs(dx)>50){ dx<0?next():prev(); } x0=null;
+  }, {passive:true});
+  render();
+})();
+</script>
+</body>
+</html>
